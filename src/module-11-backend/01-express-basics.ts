@@ -5,7 +5,7 @@
  * Type-safe backend development
  */
 
-import express, { Request, Response, NextFunction, Router } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 
 // Define request/response types
 interface User {
@@ -24,14 +24,11 @@ interface AuthenticatedRequest extends Request {
   user?: User;
 }
 
-// Type-safe route handlers
-type RouteHandler = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
-
 // Middleware type
 type Middleware = (req: Request, res: Response, next: NextFunction) => void | Promise<void>;
 
 // Example middleware
-const loggerMiddleware: Middleware = (req, res, next) => {
+const loggerMiddleware: Middleware = (req, _res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
 };
@@ -62,12 +59,17 @@ const users: User[] = [
 ];
 
 // Type-safe route handlers
-app.get('/users', (req: Request, res: Response): void => {
+app.get('/users', (_req: Request, res: Response): void => {
   res.json(users);
 });
 
 app.get('/users/:id', (req: Request, res: Response): void => {
-  const id = parseInt(req.params.id, 10);
+  const idParam = req.params.id;
+  if (!idParam) {
+    res.status(400).json({ error: 'User ID is required' });
+    return;
+  }
+  const id = parseInt(idParam, 10);
   const user = users.find((u) => u.id === id);
   
   if (!user) {
@@ -108,9 +110,9 @@ app.get('/profile', authMiddleware, (req: AuthenticatedRequest, res: Response): 
 // Error handling middleware
 const errorHandler = (
   err: Error,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   console.error('Error:', err);
   res.status(500).json({ error: 'Internal server error' });

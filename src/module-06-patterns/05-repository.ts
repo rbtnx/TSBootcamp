@@ -49,8 +49,11 @@ class InMemoryUserRepository implements UserRepository {
     if (index === -1) {
       throw new Error(`User with id ${id} not found`);
     }
-    this.users[index] = { ...this.users[index], ...updates };
-    return this.users[index];
+    const existingUser = this.users[index]!;
+    // Ensure id is not overwritten
+    const { id: _ignored, ...safeUpdates } = updates;
+    this.users[index] = { ...existingUser, ...safeUpdates };
+    return this.users[index]!; // Non-null assertion: we know it exists
   }
 
   async delete(id: number): Promise<boolean> {
